@@ -5,7 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "../src/util.h"
+#include "api/BamMultiReader.h"
+#include "api/BamWriter.h"
+#include "util.h"
 
 struct region{
   std::string startChrom;
