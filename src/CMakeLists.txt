@@ -1,0 +1,11 @@
+INCLUDE_DIRECTORIES(
+	${ZLIB_INCLUDE}
+	${BAMTOOLS_INCLUDE}
+)
+
+add_library(core_lib
+	util.cpp	
+	${ZLIB_LIBRARY}
+	${BAMTOOLS_LIB}
+)
+
