@@ -1,5 +1,12 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+INCLUDE_DIRECTORIES(
+	${ZLIB_INCLUDE}
+	${BAMTOOLS_INCLUDE}
+)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 add_executable(verify
         verify.cpp
 )
@@ -7,3 +14,5 @@ add_executable(verify
 target_link_libraries(verify
 	${CORE_LIB}
 )
+
+add_dependencies(verify ${MUTATION_VERIFIER_EXTERNAL_PROJECT})

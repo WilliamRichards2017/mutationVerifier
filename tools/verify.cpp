@@ -25,9 +25,43 @@ void bamToFasta(std::string bamFile){
   command += ".fa";
 
   std::cout << "running command " << command << std::endl;
-
   util::exec(command.c_str());
+}
 
+//TODO: implement indexing bam
+void indexBam(std::string bamFile){
+}
+
+void writeBamRegion(region reg, std::string bamPath){
+  BamTools::BamReader reader;
+  BamTools::BamAlignment al;
+
+  if(!reader.Open(bamPath)){
+    std::cout << "could not open input Bam Path in writeBamRegion for " << bamPath << std::endl;
+    std::cout << "Exiting run with non-zero status..." << std::endl;
+    reader.Close();
+    exit (EXIT_FAILURE);
+  }
+  
+  reader.LocateIndex();
+  
+  if(!reader.HasIndex()){
+    std::cout << "Index for " << bamPath << "could not be opened in writeBamRegion" << std::endl;
+    std::cout << "Exiting run with non-zero status.." << std::endl;
+    reader.Close();
+    exit (EXIT_FAILURE);
+  }
+  
+  int32_t startRefID = reader.GetReferenceID(reg.startChrom);
+  int32_t endRefID = reader.GetReferenceID(reg.endChrom);
+
+  std::cout << "trying to set region for coords " << startRefID << ", " << reg.startPos << ", " << endRefID << ", " << reg.endPos << std::endl;
+
+  BamTools::BamRegion region = {startRefID, reg.startPos, endRefID, reg.endPos};
+
+  if(!reader.SetRegion(region)){
+    std::cout << "could not set region for coords: " << startRefID << ", " << reg.startPos << ", " << endRefID << ", " << reg.endPos << std::endl;
+  }
 }
 
 
@@ -50,6 +84,7 @@ int main(int argc, char *argv[]){
     std::cout << "subject bam file is: " << subjectBam << std::endl;
 
     bamToFasta(subjectBam);
+    writeBamRegion(reg, subjectBam);
     
     return 0;   
 }
