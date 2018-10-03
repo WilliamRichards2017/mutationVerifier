@@ -106,23 +106,32 @@ void writeBamRegion(region reg, std::string bamPath){
 
 }
 
-//std::vector<std::map<std::string, int32_t> > jhashToMap(std::string jhashPath){
-void jhashToMap(std::string jhashPath){
+std::map<std::string, int32_t> jhashToMap(std::string jhashPath){
   std::ifstream file(jhashPath);
   std::string line;
+
+  std::map<std::string, int32_t> kmerMap;
   
   std::ifstream newfile(jhashPath);
   while(std::getline(newfile, line)){
-    std::cout << "first line is: " << line << std::endl;
+    std::string countString = line.erase(0,1);
+    int32_t count = atoi(countString.c_str());
+    
+    std::cout << "count is: " << count << std::endl;
     std::getline(newfile, line);
-    std::cout << "second line is: " << line << std::endl;
+    std::string kmer = line;
+
+    //std::cout << "inserting element into map: " << kmer << ":" << count << std::endl;
+    kmerMap.insert({kmer, count});
+    std::cout << "kmer is " << kmer << std::endl;
   }
+  return kmerMap;
 }
 
 
-//std::vector<std::map<std::string, int32_t> > getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
-void getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
-  jhashToMap(regionJhash);
+std::map<std::string, int32_t> getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
+  //void getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
+  return jhashToMap(regionJhash);
 }
 
 
@@ -148,7 +157,7 @@ int main(int argc, char *argv[]){
     //writeBamRegion(reg, subjectBam);
     std::string fasta = "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/Child.bam.fa";
     runJelly(fasta, 25, 10);
-    getUniqueHashes("/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.Jhash", "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.Jhash");
+    std::map<std::string, int32_t> uniqueHashes = getUniqueHashes("/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.Jhash", "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.Jhash");
     return 0;   
 }
 
