@@ -1,13 +1,20 @@
-#include <stdint.h>
+#include <algorithm>
 #include <iostream>
+#include <iterator>
+#include <stdint.h>
 #include <stdexcept>
 #include <stdio.h>
 #include <string>
 #include <vector>
 
+#include <regex.h>
+
 #include "api/BamMultiReader.h"
 #include "api/BamWriter.h"
 #include "util.h"
+
+//#include <cxxopts.hpp>
+#include "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/bin/externals/cxxopts/src/cxxopts_project/include/cxxopts.hpp"
 
 struct region{
   std::string startChrom;
@@ -134,30 +141,23 @@ std::map<std::string, int32_t> getUniqueHashes(std::string probandUniqueHashList
   return jhashToMap(regionJhash);
 }
 
+int main(int argc, char* argv[]){
+  cxxopts::Options options(argv[0], "Verifies if proband dna is unique to proband sample");
 
-int main(int argc, char *argv[]){
+  options.add_options()
+    ("s,sequence", "DNA sequence to verify uniqueness", cxxopts::value<std::string>())
+    ("p,probandJhash", "proband Jhash file", cxxopts::value<std::string>())
+    ("help", "Print help")
+    ("c,controlJhashes", "comma-seperated list of control Jhash files", cxxopts::value<std::string>());
+  
+  auto result = options.parse(argc, argv);
 
-    std::string regionString = argv[1];
-    std::string subjectBam = argv[2];
-    
-    int16_t pos = regionString.find_first_of('-');
-    std::string startR = regionString.substr(0, pos);
-    std::string endR = regionString.substr(pos+1);
-    
-    int16_t startP = startR.find_first_of(':');
-    int16_t endP = endR.find_first_of(':');
-    
-    
-    region reg{.startChrom = startR.substr(0,startP), .startPos = std::stoi(startR.substr(startP+1)), .endChrom = endR.substr(0,endP), .endPos = std::stoi(endR.substr(endP+1))};
-    
-    std::cout << "region is: " << reg.startChrom << ':' << reg.startPos << '-' << reg.endChrom << ':' << reg.endPos << std::endl;
-    std::cout << "subject bam file is: " << subjectBam << std::endl;
-
-    bamToFasta(subjectBam);
-    //writeBamRegion(reg, subjectBam);
-    std::string fasta = "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/Child.bam.fa";
-    runJelly(fasta, 25, 10);
-    std::map<std::string, int32_t> uniqueHashes = getUniqueHashes("/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.Jhash", "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.Jhash");
-    return 0;   
+  if(result.count("sequence")){
+    std::cout << "sequence is: " << result["s"].as<std::string>() << std::endl;
+    }
+  
+  std::string seq = result["s"].as<std::string>();
+  std::cout << "parsed sequence is: " << seq << std::endl;
+  
+  return 0;
 }
-
