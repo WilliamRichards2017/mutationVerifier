@@ -136,6 +136,27 @@ std::map<std::string, int32_t> jhashToMap(std::string jhashPath){
 }
 
 
+const std::vector<std::string> kmerize(std::string seq, int32_t kmersize){
+  int32_t kmercount = 0;
+
+  std::vector<std::string> kmers;
+
+  std::cout << "string to kmerize is: " << seq;
+  
+  while(kmercount + kmersize < seq.length()-1){
+    std::string kmer = seq.substr(kmercount, kmercount+kmersize);
+    kmers.push_back(kmer);
+    ++kmercount;
+    std::cout << "pushing back kmer: " << kmer << std::endl;
+
+    std::cout << "kmer count is: " << kmercount << std::endl;
+    std::cout << "kmersize is: " << kmersize << std::endl;
+    std::cout << "sequence length is: " << seq.length() << std::endl;
+    std::cout << "incremented pos is: " << kmercount+kmersize << std::endl;
+  }
+  return kmers;
+}
+
 std::map<std::string, int32_t> getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
   //void getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
   return jhashToMap(regionJhash);
@@ -145,19 +166,29 @@ int main(int argc, char* argv[]){
   cxxopts::Options options(argv[0], "Verifies if proband dna is unique to proband sample");
 
   options.add_options()
+    ("help", "Print help")
     ("s,sequence", "DNA sequence to verify uniqueness", cxxopts::value<std::string>())
     ("p,probandJhash", "proband Jhash file", cxxopts::value<std::string>())
-    ("help", "Print help")
-    ("c,controlJhashes", "comma-seperated list of control Jhash files", cxxopts::value<std::string>());
+    ("c,controlJhashes", "comma-seperated list of control Jhash files", cxxopts::value<std::vector<std::string>>());
   
   auto result = options.parse(argc, argv);
-
+  
   if(result.count("sequence")){
     std::cout << "sequence is: " << result["s"].as<std::string>() << std::endl;
+  }
+
+  if(result.count("p")){
+    std::cout << "proband file is: " << result["p"].as<std::string>() << std::endl;
+  }
+
+  if(result.count("c")){
+    auto & cc = result["c"].as<std::vector<std::string>>();
+    for(const auto & c : cc){
+      std::cout << "control file is: " << c << std::endl;
     }
+  }
   
-  std::string seq = result["s"].as<std::string>();
-  std::cout << "parsed sequence is: " << seq << std::endl;
-  
+  std::vector<std::string> kmers = kmerize("abcdefghijklmnopqrstuvwxyz123456789", 25);
+
   return 0;
 }
