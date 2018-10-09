@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
-#include <stdint.h>
 #include <stdexcept>
+#include <stdint.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -12,9 +12,10 @@
 #include "api/BamMultiReader.h"
 #include "api/BamWriter.h"
 #include "util.h"
+#include "verify.h"
 
 //#include <cxxopts.hpp>
-#include "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/bin/externals/cxxopts/src/cxxopts_project/include/cxxopts.hpp"
+#include "../bin/externals/cxxopts/src/cxxopts_project/include/cxxopts.hpp"
 
 struct region{
   std::string startChrom;
@@ -26,6 +27,39 @@ struct region{
 struct proband{
   std::vector<BamTools::BamAlignment> reads;
 };
+
+verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, std::vector<std::string> controlPaths) : sequence_(sequence), kmerSize_(kmerSize), probandPath_(probandPath), controlPaths_(controlPaths){
+
+  for(const auto & c : controlPaths_){
+    std::cout << "control file is: " << c << std::endl;
+    std::map<std::string, int32_t> controlKmer = verify::getKmersFromJhash(c);
+    controlKmers_.insert({c, controlKmer});
+  }
+
+  sequenceKmers_ = verify::kmerize();
+
+}
+
+const std::string & verify::getSequence(){
+  return sequence_;
+}
+
+const std::string & verify::getProbandPath(){
+  return probandPath_;
+}
+
+const std::vector<std::string> & verify::getControlPaths(){
+  return controlPaths_;
+}
+
+const std::vector<std::string> & verify::getSequenceKmers(){
+  return sequenceKmers_;
+}
+
+const std::map<std::string, std::map<std::string, int32_t> > & verify::getControlKmers(){
+  return controlKmers_;
+}
+
 
 void bamToFasta(std::string bamFile){
   std::string command = "samtools bam2fq ";
@@ -113,7 +147,7 @@ void writeBamRegion(region reg, std::string bamPath){
 
 }
 
-std::map<std::string, int32_t> jhashToMap(std::string jhashPath){
+const std::map<std::string, int32_t> verify::getKmersFromJhash(const std::string & jhashPath){
   std::ifstream file(jhashPath);
   std::string line;
 
@@ -136,23 +170,25 @@ std::map<std::string, int32_t> jhashToMap(std::string jhashPath){
 }
 
 
-const std::vector<std::string> kmerize(std::string seq, int32_t kmersize){
+const std::vector<std::string> verify::kmerize(){
   int32_t kmercount = 0;
 
   std::vector<std::string> kmers;
 
-  std::cout << "string to kmerize is: " << seq;
+  std::cout << "string to kmerize is: " << sequence_ << std::endl;
   
-  while(kmercount + kmersize < seq.length()-1){
-    std::string kmer = seq.substr(kmercount, kmercount+kmersize);
+  while(kmercount + kmerSize_ < sequence_.length()-1){
+    std::string kmer = sequence_.substr(kmercount, kmercount+kmerSize_);
     kmers.push_back(kmer);
     ++kmercount;
-    std::cout << "pushing back kmer: " << kmer << std::endl;
 
+    /*
+    std::cout << "pushing back kmer: " << kmer << std::endl;
     std::cout << "kmer count is: " << kmercount << std::endl;
-    std::cout << "kmersize is: " << kmersize << std::endl;
-    std::cout << "sequence length is: " << seq.length() << std::endl;
-    std::cout << "incremented pos is: " << kmercount+kmersize << std::endl;
+    std::cout << "kmersize is: " << kmerSize_ << std::endl;
+    std::cout << "sequence length is: " << sequence_.length() << std::endl;
+    std::cout << "incremented pos is: " << kmercount+kmerSize << std::endl;
+    */
   }
   return kmers;
 }
@@ -169,26 +205,59 @@ int main(int argc, char* argv[]){
     ("help", "Print help")
     ("s,sequence", "DNA sequence to verify uniqueness", cxxopts::value<std::string>())
     ("p,probandJhash", "proband Jhash file", cxxopts::value<std::string>())
+    ("l,length", "length of kmer", cxxopts::value<int32_t>())
     ("c,controlJhashes", "comma-seperated list of control Jhash files", cxxopts::value<std::vector<std::string>>());
   
   auto result = options.parse(argc, argv);
-  
+
+
+  std::string sequence;
   if(result.count("sequence")){
-    std::cout << "sequence is: " << result["s"].as<std::string>() << std::endl;
+    sequence = result["s"].as<std::string>();
+    std::cout << "sequence is: " << sequence << std::endl;
+  }
+  else{
+    std::cout << "Please provide a sequence with [-s|--sequence]" << std::endl;
+    std::cout << "Exiting run with non-zero exit status" << std::endl;
+    exit (EXIT_FAILURE);
   }
 
+  std::string probandPath;
   if(result.count("p")){
-    std::cout << "proband file is: " << result["p"].as<std::string>() << std::endl;
+    probandPath = result["p"].as<std::string>();
+    std::cout << "proband file is: " << probandPath << std::endl;
   }
-
-  if(result.count("c")){
-    auto & cc = result["c"].as<std::vector<std::string>>();
-    for(const auto & c : cc){
-      std::cout << "control file is: " << c << std::endl;
-    }
+  else{
+    std::cout << "Please provide a proband Jhash file with [-p|--proband]" << std::endl;
+    std::cout << "Exiting run with non-zero exit status" << std::endl;
+    exit (EXIT_FAILURE);
   }
   
-  std::vector<std::string> kmers = kmerize("abcdefghijklmnopqrstuvwxyz123456789", 25);
+  std::vector<std::string> controlPaths;
+  if(result.count("c")){
+    controlPaths = result["c"].as<std::vector<std::string>>();
+    
+  }
+  else{
+    std::cout << "Please provide atleast one control Jhash file  with [-c|--control]" << std::endl;
+    std::cout << "Exiting run with non-zero exit status" << std::endl;
+    exit (EXIT_FAILURE);
+  }
+  
+
+  int32_t kmerSize;
+  if(result.count("l")){
+    kmerSize = result["l"].as<int32_t>();
+    std::cout << "kmer length is: " << kmerSize << std::endl;
+  }
+  else{
+    std::cout << "Please provide a kmer length  with [-l|--length]" << std::endl;
+    std::cout << "Exiting run with non-zero exit status" << std::endl;
+    exit (EXIT_FAILURE);
+  }
+
+  verify v = {sequence, kmerSize, probandPath, controlPaths};
+  
 
   return 0;
 }
