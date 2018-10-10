@@ -28,7 +28,28 @@ struct proband{
   std::vector<BamTools::BamAlignment> reads;
 };
 
+const std::map<std::string, int32_t> verify::getSequenceCountsFromKmerMap(const std::map<std::string, int32_t> & kmerMap){
+  std::map<std::string, int32_t> sequenceMap;
+  for (const auto & k : sequenceKmers_) {
+    if(kmerMap.count(k) == 1){
+      std::cout << "found kmer " << k << " with count " << kmerMap.at(k) << std::endl;
+    }
+    std::cout << k << " has count 0" << std::endl;
+  }
+  return sequenceMap;
+}
+
+void verify::printAllSequenceCounts(){
+  std::map<std::string, int32_t> temp = verify::getSequenceCountsFromKmerMap(probandKmers_);
+  for(const auto & kv : controlKmers_){
+    std::map<std::string, int32_t> temp2 = verify::getSequenceCountsFromKmerMap(kv.second);
+  }
+}
+
+
 verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, std::vector<std::string> controlPaths) : sequence_(sequence), kmerSize_(kmerSize), probandPath_(probandPath), controlPaths_(controlPaths){
+
+  sequenceKmers_ = verify::kmerize();
 
   for(const auto & c : controlPaths_){
     std::cout << "control file is: " << c << std::endl;
@@ -36,7 +57,7 @@ verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, 
     controlKmers_.insert({c, controlKmer});
   }
 
-  sequenceKmers_ = verify::kmerize();
+  probandKmers_ = verify::getKmersFromJhash(probandPath_);
 
 }
 
@@ -177,25 +198,20 @@ const std::vector<std::string> verify::kmerize(){
 
   std::cout << "string to kmerize is: " << sequence_ << std::endl;
   
-  while(kmercount + kmerSize_ < sequence_.length()-1){
-    std::string kmer = sequence_.substr(kmercount, kmercount+kmerSize_);
+  while(kmercount + kmerSize_ <= sequence_.length()){
+    std::string kmer = sequence_.substr(kmercount, kmerSize_);
     kmers.push_back(kmer);
     ++kmercount;
 
-    /*
+    
     std::cout << "pushing back kmer: " << kmer << std::endl;
     std::cout << "kmer count is: " << kmercount << std::endl;
     std::cout << "kmersize is: " << kmerSize_ << std::endl;
     std::cout << "sequence length is: " << sequence_.length() << std::endl;
-    std::cout << "incremented pos is: " << kmercount+kmerSize << std::endl;
-    */
+    std::cout << "incremented pos is: " << kmercount+kmerSize_ << std::endl;
+    
   }
   return kmers;
-}
-
-std::map<std::string, int32_t> getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
-  //void getUniqueHashes(std::string probandUniqueHashList, std::string regionJhash){
-  return jhashToMap(regionJhash);
 }
 
 int main(int argc, char* argv[]){
@@ -257,7 +273,7 @@ int main(int argc, char* argv[]){
   }
 
   verify v = {sequence, kmerSize, probandPath, controlPaths};
-  
+  v.printAllSequenceCounts();
 
   return 0;
 }
