@@ -54,7 +54,7 @@ verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, 
 
   sequenceKmers_ = verify::kmerize();
   probandDumpPath_ = "";
-  probandDumpPath_ += "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/resources/testData";
+  probandDumpPath_ += "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/resources/testData/";
   probandDumpPath_ += util::baseName(probandPath_);
   probandDumpPath_ += ".dump";
 
