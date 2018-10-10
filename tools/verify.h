@@ -17,7 +17,9 @@ class verify{
   const int32_t kmerSize_;
   const std::string sequence_;
   const std::string probandPath_;
+  std::string probandDumpPath_;
   const std::vector<std::string> controlPaths_;
+  std::vector<std::string> controlDumpPaths_;
   std::vector<std::string> sequenceKmers_;
   std::map<std::string, int32_t> probandKmers_;
   std::map<std::string, std::map<std::string, int32_t> > controlKmers_;

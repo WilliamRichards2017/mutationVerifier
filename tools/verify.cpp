@@ -30,8 +30,9 @@ struct proband{
 
 const std::map<std::string, int32_t> verify::getSequenceCountsFromKmerMap(const std::map<std::string, int32_t> & kmerMap){
   std::map<std::string, int32_t> sequenceMap;
+  std::cout << "size of kmer map is: " << kmerMap.size() << std::endl;
   for (const auto & k : sequenceKmers_) {
-    if(kmerMap.count(k) == 1){
+    if(kmerMap.count(k) != 0){
       std::cout << "found kmer " << k << " with count " << kmerMap.at(k) << std::endl;
     }
     std::cout << k << " has count 0" << std::endl;
@@ -40,7 +41,9 @@ const std::map<std::string, int32_t> verify::getSequenceCountsFromKmerMap(const 
 }
 
 void verify::printAllSequenceCounts(){
+  std::cout << "######################_PROBAND_###################################" << std::endl;
   std::map<std::string, int32_t> temp = verify::getSequenceCountsFromKmerMap(probandKmers_);
+  std::cout << "##################################################################" << std::endl;
   for(const auto & kv : controlKmers_){
     std::map<std::string, int32_t> temp2 = verify::getSequenceCountsFromKmerMap(kv.second);
   }
@@ -50,14 +53,21 @@ void verify::printAllSequenceCounts(){
 verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, std::vector<std::string> controlPaths) : sequence_(sequence), kmerSize_(kmerSize), probandPath_(probandPath), controlPaths_(controlPaths){
 
   sequenceKmers_ = verify::kmerize();
+  probandDumpPath_ = "";
+  probandDumpPath_ += "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/resources/testData";
+  probandDumpPath_ += util::baseName(probandPath_);
+  probandDumpPath_ += ".dump";
 
-  for(const auto & c : controlPaths_){
+  std::cout << "proband dump path is " << probandDumpPath_ << std::endl;
+
+  /*  for(const auto & c : controlPaths_){
     std::cout << "control file is: " << c << std::endl;
     std::map<std::string, int32_t> controlKmer = verify::getKmersFromJhash(c);
     controlKmers_.insert({c, controlKmer});
   }
+  */
 
-  probandKmers_ = verify::getKmersFromJhash(probandPath_);
+  probandKmers_ = verify::getKmersFromJhash(probandDumpPath_);
 
 }
 
@@ -91,6 +101,31 @@ void bamToFasta(std::string bamFile){
 
   std::cout << "running command " << command << std::endl;
   util::exec(command.c_str());
+}
+
+void dumpJhash(std::string jhashFile){
+  std::string jellyfishPath = "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/bin/externals/jellyfish/src/jellyfish_project/bin/jellyfish";
+
+  std::string histoCommand = "";
+  histoCommand += jellyfishPath;
+  histoCommand += " histo ";
+  histoCommand += jhashFile;
+
+  std::cout << "executing histo command " << histoCommand << std::endl;
+  util::exec(histoCommand.c_str());
+
+  std::string dumpCommand = "";
+  dumpCommand += jellyfishPath;
+  dumpCommand += " dump ";
+  dumpCommand += jhashFile;
+  dumpCommand += " > ";
+  dumpCommand += "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/resources/testData/";
+  dumpCommand += util::baseName(jhashFile);
+  dumpCommand += ".dump";
+ 
+  
+  //  std::cout<< "executing dump command " << dumpCommand << std::endl;
+  util::exec(dumpCommand.c_str());
 }
 
 void runJelly(std::string fastaFile, int32_t kmerSize, int32_t threads){
@@ -172,6 +207,8 @@ const std::map<std::string, int32_t> verify::getKmersFromJhash(const std::string
   std::ifstream file(jhashPath);
   std::string line;
 
+  std::cout << "reading in kmers from " << jhashPath << std::endl;
+
   std::map<std::string, int32_t> kmerMap;
   
   std::ifstream newfile(jhashPath);
@@ -179,13 +216,13 @@ const std::map<std::string, int32_t> verify::getKmersFromJhash(const std::string
     std::string countString = line.erase(0,1);
     int32_t count = atoi(countString.c_str());
     
-    std::cout << "count is: " << count << std::endl;
+    //std::cout << "count is: " << count << std::endl;
     std::getline(newfile, line);
     std::string kmer = line;
 
-    //std::cout << "inserting element into map: " << kmer << ":" << count << std::endl;
+    std::cout << "inserting element into map: " << kmer << ":" << count << std::endl;
     kmerMap.insert({kmer, count});
-    std::cout << "kmer is " << kmer << std::endl;
+    //std::cout << "kmer is " << kmer << std::endl;
   }
   return kmerMap;
 }
@@ -242,6 +279,7 @@ int main(int argc, char* argv[]){
   if(result.count("p")){
     probandPath = result["p"].as<std::string>();
     std::cout << "proband file is: " << probandPath << std::endl;
+    dumpJhash(probandPath);
   }
   else{
     std::cout << "Please provide a proband Jhash file with [-p|--proband]" << std::endl;
@@ -252,7 +290,9 @@ int main(int argc, char* argv[]){
   std::vector<std::string> controlPaths;
   if(result.count("c")){
     controlPaths = result["c"].as<std::vector<std::string>>();
-    
+    for(const auto & c : controlPaths){
+      dumpJhash(c);
+    }
   }
   else{
     std::cout << "Please provide atleast one control Jhash file  with [-c|--control]" << std::endl;
