@@ -32,10 +32,16 @@ const std::map<std::string, int32_t> verify::getSequenceCountsFromKmerMap(const 
   std::map<std::string, int32_t> sequenceMap;
   std::cout << "size of kmer map is: " << kmerMap.size() << std::endl;
   for (const auto & k : sequenceKmers_) {
+    std::string revK = util::revComp(k);
     if(kmerMap.count(k) != 0){
       std::cout << "found kmer " << k << " with count " << kmerMap.at(k) << std::endl;
     }
-    std::cout << k << " has count 0" << std::endl;
+    else if (kmerMap.count(revK) != 0){
+      std::cout << "found kmer rev comp " << revK << " with count " << kmerMap.at(revK) << std::endl;
+    }
+    else{
+      std::cout << k << " has count 0" << std::endl;
+    }
   }
   return sequenceMap;
 }
