@@ -25,6 +25,7 @@ class verify{
   std::map<std::string, std::map<std::string, int32_t> > controlKmers_;
 
   const std::vector<std::string> kmerize();
+  const std::map<std::string, int32_t> countKmers(const std::string &);
 
   const std::map<std::string, int32_t> getKmersFromJhash(const std::string &);
   const std::map<std::string, int32_t> getSequenceCountsFromKmerMap(const std::map<std::string, int32_t> &);

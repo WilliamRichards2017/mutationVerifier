@@ -14,19 +14,7 @@
 #include "util.h"
 #include "verify.h"
 
-//#include <cxxopts.hpp>
 #include "../bin/externals/cxxopts/src/cxxopts_project/include/cxxopts.hpp"
-
-struct region{
-  std::string startChrom;
-  int32_t startPos;
-  std::string endChrom;
-  int32_t endPos;
-};
-
-struct proband{
-  std::vector<BamTools::BamAlignment> reads;
-};
 
 const std::map<std::string, int32_t> verify::getSequenceCountsFromKmerMap(const std::map<std::string, int32_t> & kmerMap){
   std::map<std::string, int32_t> sequenceMap;
@@ -55,23 +43,49 @@ void verify::printAllSequenceCounts(){
   }
 }
 
+const std::string jhashToDumpPath(const std::string & jhashPath){
+  std::string dumpPath = "";
+  dumpPath += "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/resources/testData/";
+  dumpPath += util::baseName(jhashPath);
+  dumpPath += ".dump";
+  return dumpPath;
+}
+
+const std::map<std::string, int32_t> verify::countKmers(const std::string & jhashPath){
+  std::string jellyfishPath = "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/bin/externals/jellyfish/src/jellyfish_project/bin/jellyfish";
+  
+  std::map<std::string, int32_t> ret;
+  for (const auto & kmer : sequenceKmers_){
+
+    std::string cmd = jellyfishPath + " query " + jhashPath + " " + kmer;
+    std::cout << "executing command: " << cmd << std::endl;
+
+    std::string queryOutput = util::exec(cmd.c_str());
+    std::cout << "command output is: " << queryOutput << std::endl;
+    std::istringstream iss(queryOutput);
+    std::vector<std::string> kmerCount((std::istream_iterator<std::string>(iss)),
+				     std::istream_iterator<std::string>());
+
+  }
+  return ret;
+}
 
 verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, std::vector<std::string> controlPaths) : sequence_(sequence), kmerSize_(kmerSize), probandPath_(probandPath), controlPaths_(controlPaths){
 
   sequenceKmers_ = verify::kmerize();
-  probandDumpPath_ = "";
-  probandDumpPath_ += "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/resources/testData/";
-  probandDumpPath_ += util::baseName(probandPath_);
-  probandDumpPath_ += ".dump";
-
-  std::cout << "proband dump path is " << probandDumpPath_ << std::endl;
-
-  /*  for(const auto & c : controlPaths_){
-    std::cout << "control file is: " << c << std::endl;
-    std::map<std::string, int32_t> controlKmer = verify::getKmersFromJhash(c);
-    controlKmers_.insert({c, controlKmer});
+  //probandDumpPath_ = jhashToDumpPath(probandPath_);
+  //std::cout << "proband dump path is " << probandDumpPath_ << std::endl;
+  
+  std::map<std::string, int32_t> kmerCounts = verify::countKmers(probandPath_);
+  
+  for(const auto & c : controlPaths_){
+    //  std::string controlDumpPath = jhashToDumpPath(c);
+    //controlDumpPaths_.push_back(controlDumpPath);
+    //std::cout << "control dump file is: " << controlDumpPath << std::endl;
+    //std::map<std::string, int32_t> controlKmer = verify::getKmersFromJhash(controlDumpPath);
+    //controlKmers_.insert({controlDumpPath, controlKmer});
   }
-  */
+  
 
   probandKmers_ = verify::getKmersFromJhash(probandDumpPath_);
 
@@ -98,7 +112,8 @@ const std::map<std::string, std::map<std::string, int32_t> > & verify::getContro
 }
 
 
-void bamToFasta(std::string bamFile){
+/*
+  void bamToFasta(std::string bamFile){
   std::string command = "samtools bam2fq ";
   command += bamFile;
   command += " | seqtk seq -A - > temp/";
@@ -108,6 +123,7 @@ void bamToFasta(std::string bamFile){
   std::cout << "running command " << command << std::endl;
   util::exec(command.c_str());
 }
+*/
 
 void dumpJhash(std::string jhashFile){
   std::string jellyfishPath = "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/bin/externals/jellyfish/src/jellyfish_project/bin/jellyfish";
@@ -134,81 +150,6 @@ void dumpJhash(std::string jhashFile){
   util::exec(dumpCommand.c_str());
 }
 
-void runJelly(std::string fastaFile, int32_t kmerSize, int32_t threads){
-  std::string jellyfishPath = "/uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/bin/externals/jellyfish/src/jellyfish_project/bin/jellyfish";
-  std::string command = "";
-  command += jellyfishPath;
-  command += " count -m ";
-  command += std::to_string(kmerSize);
-  command += " -s 100M -t ";
-  command += std::to_string(threads);
-  command += " -o /uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.jf";
-  command += " -C ";
-  command += fastaFile;
-
-  std::cout << "executing command " << command << std::endl;
-  util::exec(command.c_str());
-
-  std::string histoCommand = "";
-  histoCommand += jellyfishPath;
-  histoCommand += " histo /uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.jf";
-
-  std::cout << "executing histo command " << histoCommand << std::endl;
-  util::exec(histoCommand.c_str());
-  
-  std::string dumpCommand = "";
-  dumpCommand += jellyfishPath;
-  dumpCommand += " dump /uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.jf > /uufs/chpc.utah.edu/common/home/u0401321/mutationVerifier/temp/fasta.Jhash";
-  
-  std::cout << "executing dump command " << dumpCommand << std::endl;
-  util::exec(dumpCommand.c_str());
-  
-}
-
-//TODO: implement indexing bam
-void indexBam(std::string bamFile){
-}
-
-void writeBamRegion(region reg, std::string bamPath){
-  BamTools::BamReader reader;
-  BamTools::BamAlignment al;
-
-  if(!reader.Open(bamPath)){
-    std::cout << "could not open input Bam Path in writeBamRegion for " << bamPath << std::endl;
-    std::cout << "Exiting run with non-zero status..." << std::endl;
-    reader.Close();
-    exit (EXIT_FAILURE);
-  }
-  
-  reader.LocateIndex();
-  
-  if(!reader.HasIndex()){
-    std::cout << "Index for " << bamPath << "could not be opened in writeBamRegion" << std::endl;
-    std::cout << "Exiting run with non-zero status.." << std::endl;
-    reader.Close();
-    exit (EXIT_FAILURE);
-  }
-  
-  int32_t startRefID = reader.GetReferenceID(reg.startChrom);
-  int32_t endRefID = reader.GetReferenceID(reg.endChrom);
-
-  std::cout << "trying to set region for coords " << startRefID << ", " << reg.startPos << ", " << endRefID << ", " << reg.endPos << std::endl;
-
-  BamTools::BamRegion region = {startRefID, reg.startPos, endRefID, reg.endPos};
-
-  if(!reader.SetRegion(region)){
-    std::cout << "could not set region for coords: " << startRefID << ", " << reg.startPos << ", " << endRefID << ", " << reg.endPos << std::endl;
-  }
-
-  proband p;
-
-  while(reader.GetNextAlignment(al)){
-    p.reads.push_back(al);
-    std::cout << "found read in region" << std::endl;
-  }
-
-}
-
 const std::map<std::string, int32_t> verify::getKmersFromJhash(const std::string & jhashPath){
   std::ifstream file(jhashPath);
   std::string line;
@@ -226,7 +167,7 @@ const std::map<std::string, int32_t> verify::getKmersFromJhash(const std::string
     std::getline(newfile, line);
     std::string kmer = line;
 
-    std::cout << "inserting element into map: " << kmer << ":" << count << std::endl;
+    //std::cout << "inserting element into map: " << kmer << ":" << count << std::endl;
     kmerMap.insert({kmer, count});
     //std::cout << "kmer is " << kmer << std::endl;
   }
@@ -246,12 +187,13 @@ const std::vector<std::string> verify::kmerize(){
     kmers.push_back(kmer);
     ++kmercount;
 
-    
+    /*
     std::cout << "pushing back kmer: " << kmer << std::endl;
     std::cout << "kmer count is: " << kmercount << std::endl;
     std::cout << "kmersize is: " << kmerSize_ << std::endl;
     std::cout << "sequence length is: " << sequence_.length() << std::endl;
     std::cout << "incremented pos is: " << kmercount+kmerSize_ << std::endl;
+    */
     
   }
   return kmers;
@@ -319,7 +261,7 @@ int main(int argc, char* argv[]){
   }
 
   verify v = {sequence, kmerSize, probandPath, controlPaths};
-  v.printAllSequenceCounts();
+  //v.printAllSequenceCounts();
 
   return 0;
 }
