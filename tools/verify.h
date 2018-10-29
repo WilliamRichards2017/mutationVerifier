@@ -10,8 +10,9 @@ class verify{
   const std::vector<std::string> & getControlPaths();
   const std::vector<std::string> & getSequenceKmers();
   const std::map<std::string, std::map<std::string, int32_t> > & getControlKmers();
+  void printKmerMap(const std::map<std::string, int32_t> &, const std::string &);
 
-  void printAllSequenceCounts();
+  //void printAllSequenceCounts();
   
  private:
   const int32_t kmerSize_;
