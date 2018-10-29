@@ -54,6 +54,30 @@ const std::map<std::string, int32_t> verify::countKmers(const std::string & jhas
   return ret;
 }
 
+const std::map<std::string, int32_t> verify::getKmersFromHashList(const std::string & jhashPath){
+  std::ifstream file(jhashPath);
+  std::string line;
+
+  std::cout << "reading in kmers from " << jhashPath << std::endl;
+
+  std::map<std::string, int32_t> kmerMap;
+  
+  std::ifstream newfile(jhashPath);
+  while(std::getline(newfile, line)){
+    std::string countString = line.erase(0,1);
+    int32_t count = atoi(countString.c_str());
+    
+    //std::cout << "count is: " << count << std::endl;
+    std::getline(newfile, line);
+    std::string kmer = line;
+
+    //std::cout << "inserting element into map: " << kmer << ":" << count << std::endl;
+    kmerMap.insert({kmer, count});
+    //std::cout << "kmer is " << kmer << std::endl;
+  }
+  return kmerMap;
+}
+
 void verify::printKmerMap(const std::map<std::string, int32_t> & kmerMap, const std::string & originPath ){
   std::cout << "Looking for mutations in Jhash file: " << originPath << std::endl;
   for(const auto & kv : kmerMap){
@@ -63,7 +87,7 @@ void verify::printKmerMap(const std::map<std::string, int32_t> & kmerMap, const 
   }
 }
 
-verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, std::vector<std::string> controlPaths) : sequence_(sequence), kmerSize_(kmerSize), probandPath_(probandPath), controlPaths_(controlPaths){
+verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, std::vector<std::string> controlPaths, std::string hashListPath) : sequence_(sequence), kmerSize_(kmerSize), probandPath_(probandPath), controlPaths_(controlPaths), hashListPath_(hashListPath){
 
   sequenceKmers_ = verify::kmerize();
   std::map<std::string, int32_t> probandKmerCounts = verify::countKmers(probandPath_);
@@ -82,7 +106,9 @@ int main(int argc, char* argv[]){
     ("s,sequence", "DNA sequence to verify uniqueness", cxxopts::value<std::string>())
     ("p,probandJhash", "proband Jhash file", cxxopts::value<std::string>())
     ("l,length", "length of kmer", cxxopts::value<int32_t>())
-    ("c,controlJhashes", "comma-seperated list of control Jhash files", cxxopts::value<std::vector<std::string>>());
+    ("c,controlJhashes", "comma-seperated list of control Jhash files", cxxopts::value<std::vector<std::string>>())
+    ("h,hashList", "proband hashList file", cxxopts::value<std::string>());
+
   
   auto result = options.parse(argc, argv);
 
@@ -128,8 +154,18 @@ int main(int argc, char* argv[]){
     std::cout << "Exiting run with non-zero exit status" << std::endl;
     exit (EXIT_FAILURE);
   }
+  std::string hashListPath;
+  if(result.count("h")){
+    probandPath = result["h"].as<std::string>();
+    std::cout << "proband hashList is: " << hashListPath << std::endl;
+  }
+  else{
+    std::cout << "Please provide a proband hashList file with [-h|--hashList]" << std::endl;
+    std::cout << "Exiting run with non-zero exit status" << std::endl;
+    exit (EXIT_FAILURE);
+  }
 
-  verify v = {sequence, kmerSize, probandPath, controlPaths};
+  verify v = {sequence, kmerSize, probandPath, controlPaths, hashListPath};
  
   return 0;
 }

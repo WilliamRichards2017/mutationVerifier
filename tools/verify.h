@@ -3,7 +3,7 @@
 
 class verify{
  public:
-  verify(std::string, int32_t, std::string, std::vector<std::string>);
+  verify(std::string, int32_t, std::string, std::vector<std::string>, std::string);
  
 
   
@@ -11,6 +11,7 @@ class verify{
   const int32_t kmerSize_;
   const std::string sequence_;
   const std::string probandPath_;
+  const std::string hashListPath_;
   const std::vector<std::string> controlPaths_;
   std::vector<std::string> sequenceKmers_;
   std::map<std::string, int32_t> probandKmers_;
@@ -19,6 +20,7 @@ class verify{
   void printKmerMap(const std::map<std::string, int32_t> &, const std::string &);
   const std::vector<std::string> kmerize();
   const std::map<std::string, int32_t> countKmers(const std::string &);
+  const std::map<std::string, int32_t> getKmersFromHashList(const std::string &);
 
 };
 
