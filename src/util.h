@@ -6,7 +6,9 @@
 class util{
  public:
   static std::string exec(char const*);
-  static std::string baseName(std::string);
+  static const std::string baseName(const std::string &);
+  static const std::string revComp(const std::string &);
+  
 };
 
 #endif //__SRC_UTIL__

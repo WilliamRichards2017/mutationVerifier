@@ -21,6 +21,7 @@ class verify{
   const std::vector<std::string> kmerize();
   const std::map<std::string, int32_t> countKmers(const std::string &);
   const std::map<std::string, int32_t> getKmersFromHashList(const std::string &);
+  const std::map<std::string, int32_t> filterHashListKmers(const std::map<std::string, int32_t> &);
 
 };
 

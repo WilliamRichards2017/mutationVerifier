@@ -48,8 +48,9 @@ const std::map<std::string, int32_t> verify::countKmers(const std::string & jhas
 				       std::istream_iterator<std::string>());
 
     if(kmerCount.size() == 2){
+      // std::cout << kmerCount[0] << ":" << kmerCount[1] << std::endl;
       ret.insert({kmerCount[0], atoi(kmerCount[1].c_str())});
-      }
+    }
   }
   return ret;
 }
@@ -64,18 +65,38 @@ const std::map<std::string, int32_t> verify::getKmersFromHashList(const std::str
   
   std::ifstream newfile(jhashPath);
   while(std::getline(newfile, line)){
-    std::string countString = line.erase(0,1);
-    int32_t count = atoi(countString.c_str());
     
-    //std::cout << "count is: " << count << std::endl;
-    std::getline(newfile, line);
-    std::string kmer = line;
-
-    //std::cout << "inserting element into map: " << kmer << ":" << count << std::endl;
-    kmerMap.insert({kmer, count});
-    //std::cout << "kmer is " << kmer << std::endl;
+    std::istringstream iss(line);
+    std::vector<std::string> kmerCount((std::istream_iterator<std::string>(iss)),
+                                       std::istream_iterator<std::string>());
+    if(kmerCount.size() == 2){
+      //std::cout << "inserting element into map: " << kmerCount[0] << ":" << kmerCount[1] << std::endl;
+      kmerMap.insert({kmerCount[0], atoi(kmerCount[1].c_str())});
+    }
   }
   return kmerMap;
+}
+
+const std::map<std::string, int32_t> verify::filterHashListKmers(const std::map<std::string, int32_t> & hashListKmers){
+  std::map<std::string, int32_t> filteredHashMap;
+  for(const auto & k : sequenceKmers_){
+
+    auto it = hashListKmers.find(k);
+    auto revit = hashListKmers.find(util::revComp(k));
+    if(it != hashListKmers.end()){
+      filteredHashMap.insert({k, 0});
+      std::cout << "kmer found in hashList: " << k << ":" << 0 << std::endl;
+    }
+    else if(revit != hashListKmers.end()){
+      std::cout << "found revComp kmer in hashList: " << k << std::endl;
+    }
+    else{
+      //std::cout << "kmer not found in hashList: " << k << std::endl;
+      //filteredHashMap.insert({it->first, it->second});
+      //std::cout << "found kmer in hashList: " << it->first << ":" << it->second << std::endl;
+    }
+  }
+  return filteredHashMap;
 }
 
 void verify::printKmerMap(const std::map<std::string, int32_t> & kmerMap, const std::string & originPath ){
@@ -96,6 +117,9 @@ verify::verify(std::string sequence, int32_t kmerSize, std::string probandPath, 
     std::map<std::string, int32_t> controlKmerCounts = verify::countKmers(c);
     verify::printKmerMap(controlKmerCounts, c);
   }
+
+  std::map<std::string, int32_t> hashListKmers = verify::getKmersFromHashList(hashListPath_);
+  std::map<std::string, int32_t> filteredHashList = verify::filterHashListKmers(hashListKmers); 
 }
 
 int main(int argc, char* argv[]){
@@ -156,7 +180,7 @@ int main(int argc, char* argv[]){
   }
   std::string hashListPath;
   if(result.count("h")){
-    probandPath = result["h"].as<std::string>();
+    hashListPath = result["h"].as<std::string>();
     std::cout << "proband hashList is: " << hashListPath << std::endl;
   }
   else{
